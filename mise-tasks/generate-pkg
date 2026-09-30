@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+#MISE description="Generate a Go module in pkg or internal"
+
+set -euo pipefail
+
+readonly base_path="github.com/distributed-programming-2026/go-sdk"
+readonly task_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+readonly project_dir="$(dirname -- "$task_dir")"
+readonly template_dir="$task_dir/generate-pkg.d"
+
+module="${1:-}"
+
+if [[ -z "$module" ]]; then
+  printf 'Usage: mise run generate-pkg <module>\n' >&2
+  exit 2
+fi
+
+if [[ ! "$module" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
+  printf 'Invalid module name %q: use lowercase letters, digits, dots, underscores, and hyphens.\n' "$module" >&2
+  exit 2
+fi
+
+printf 'Where should the module be created?\n'
+printf '  1) pkg\n'
+printf '  2) internal\n'
+
+while true; do
+  read -r -p 'Select visibility [1/2]: ' choice
+
+  case "$choice" in
+    1|pkg)
+      visibility="pkg"
+      break
+      ;;
+    2|internal)
+      visibility="internal"
+      break
+      ;;
+    *)
+      printf 'Please enter 1 (pkg) or 2 (internal).\n' >&2
+      ;;
+  esac
+done
+
+relative_module_dir="$visibility/$module"
+module_dir="$project_dir/$relative_module_dir"
+
+if [[ -e "$module_dir" ]]; then
+  printf 'Cannot create module: %s already exists.\n' "$relative_module_dir" >&2
+  exit 1
+fi
+
+shopt -s nullglob dotglob
+templates=("$template_dir"/*.tpl)
+
+if (( ${#templates[@]} == 0 )); then
+  printf 'No templates found in %s.\n' "$template_dir" >&2
+  exit 1
+fi
+
+mkdir -p -- "$module_dir"
+
+for template in "${templates[@]}"; do
+  output_name="$(basename -- "$template" .tpl)"
+  sed \
+    -e "s|{{ basePath }}|$base_path|g" \
+    -e "s|{{ base }}|$base_path|g" \
+    -e "s|{{ visibility }}|$visibility|g" \
+    -e "s|{{ module }}|$module|g" \
+    "$template" > "$module_dir/$output_name"
+done
+
+(
+  cd -- "$project_dir"
+  go work edit -use="./$relative_module_dir"
+)
+
+printf 'Created module %s/%s at %s.\n' "$base_path" "$relative_module_dir" "$relative_module_dir"
