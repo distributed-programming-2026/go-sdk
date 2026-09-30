@@ -20,3 +20,7 @@ run = '''
 MISE_JOBS=1 mise run //internal/...:all
 MISE_JOBS=1 mise run //pkg/...:all
 '''
+
+[tasks.release]
+description = "Release every Go module with the same semantic version"
+run = "./mise-tasks/release"
