@@ -29,5 +29,7 @@ Panic из `Migration.Up` не преобразуется в error: после �
 Интеграционные тесты запускают `mysql:8.4` через testcontainers:
 
 ```sh
-go test ./...
+mise run //pkg/migrator:all
 ```
+
+Полная последовательная проверка монорепозитория: `mise run all`.

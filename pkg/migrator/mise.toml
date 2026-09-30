@@ -2,6 +2,7 @@
 run = [
     { task = "generate" },
     { task = "modules" },
+    { task = "build" },
     { task = "test" },
     { task = "lint" },
 ]
@@ -11,6 +12,9 @@ run = "go generate ./..."
 
 [tasks."modules"]
 run = "go mod tidy"
+
+[tasks.build]
+run = "go build ./..."
 
 [tasks."test"]
 run = "go test ./..."
