@@ -4,6 +4,7 @@ use (
 	./internal/sharedpool
 	./pkg/amqp
 	./pkg/logging
+	./pkg/migrator
 	./pkg/mysql
 	./pkg/uow
 )
