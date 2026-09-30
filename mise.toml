@@ -1,5 +1,8 @@
 monorepo_root = true
 
+[env]
+_.source = "{{ config_root }}/mise-env/docker.sh"
+
 [monorepo]
 config_roots = [
   "pkg/*",
