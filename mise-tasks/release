@@ -58,7 +58,16 @@ for module_file in "${module_files[@]}"; do
     go mod edit -modfile="$module_file" -require="${dependency}@v${version}"
   done < <(
     cd "$module_dir"
-    GOWORK=off go list -m -f '{{range .Require}}{{.Path}}{{"\n"}}{{end}}'
+    GOWORK=off go mod edit -json | awk '
+      /"Require": \[/ { in_require = 1; next }
+      in_require && /^[[:space:]]*]/ { exit }
+      in_require && /"Path":/ {
+        dependency = $0
+        sub(/^[^:]*:[[:space:]]*"/, "", dependency)
+        sub(/"[,]?$/, "", dependency)
+        print dependency
+      }
+    '
   )
 done
 
