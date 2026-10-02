@@ -1,0 +1,29 @@
+[tasks.all]
+run = [
+    { task = "generate" },
+    { task = "modules" },
+    { task = "build" },
+    { task = "test" },
+    { task = "lint" },
+]
+
+[tasks.generate]
+run = """
+protoc \
+    --proto_path=internal/eventpb \
+    --go_out=internal/eventpb \
+    --go_opt=paths=source_relative \
+    internal/eventpb/envelope.proto
+"""
+
+[tasks."modules"]
+run = "go mod tidy"
+
+[tasks.build]
+run = "go build ./..."
+
+[tasks."test"]
+run = "go test ./..."
+
+[tasks."lint"]
+run = "golangci-lint run"

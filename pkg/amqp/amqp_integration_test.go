@@ -29,10 +29,10 @@ func TestRequiredDependencies(t *testing.T) {
 		NewProducer("test", nil, queue, nil, nil)
 	})
 	assert.PanicsWithValue(t, "amqp: context is required", func() {
-		NewConsumer(nilContext, handler, queue, nil, nil, logger)
+		NewConsumer(nilContext, handler, nil, queue, nil, nil, logger)
 	})
 	assert.PanicsWithValue(t, "amqp: logger is required", func() {
-		NewConsumer(context.Background(), handler, queue, nil, nil, nil)
+		NewConsumer(context.Background(), handler, nil, queue, nil, nil, nil)
 	})
 }
 
@@ -44,7 +44,7 @@ func TestDirectQueueAndPublisherConfirm(t *testing.T) {
 	connection.Consumer(context.Background(), func(_ context.Context, delivery Delivery) Disposition {
 		received <- delivery
 		return Ack
-	}, &queue, nil, &QoSConfig{PrefetchCount: 1})
+	}, nil, &queue, nil, &QoSConfig{PrefetchCount: 1})
 	require.NoError(t, connection.Start())
 
 	require.NoError(t, producer.Publish(testContext(t), Delivery{Body: []byte("direct"), CorrelationID: "correlation-1"}))
@@ -64,10 +64,52 @@ func TestDirectExchange(t *testing.T) {
 	connection.Consumer(context.Background(), func(_ context.Context, delivery Delivery) Disposition {
 		received <- delivery
 		return Ack
-	}, &queue, &bind, nil)
+	}, &exchange, &queue, &bind, nil)
 	require.NoError(t, connection.Start())
 	require.NoError(t, producer.Publish(testContext(t), Delivery{RoutingKey: "orders.created", Body: []byte("exchange")}))
 	assert.Equal(t, []byte("exchange"), receive(t, received).Body)
+}
+
+func TestConsumerDeclaresExchange(t *testing.T) {
+	name := uniqueName(t, "consumer-exchange")
+	exchange := ExchangeConfig{
+		Name:       name,
+		Kind:       rabbit.ExchangeTopic,
+		AutoDelete: true,
+	}
+	queue := QueueConfig{
+		Name:       name + ".queue",
+		AutoDelete: true,
+	}
+	bind := BindConfig{
+		QueueName:    queue.Name,
+		ExchangeName: exchange.Name,
+		RoutingKeys:  []string{"users.#"},
+	}
+	received := make(chan Delivery, 1)
+	connection := testConnection(t)
+	connection.Consumer(context.Background(), func(_ context.Context, delivery Delivery) Disposition {
+		received <- delivery
+		return Ack
+	}, &exchange, &queue, &bind, nil)
+	require.NoError(t, connection.Start())
+
+	raw, err := rabbit.Dial(testAMQPURL)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = raw.Close() })
+	channel, err := raw.Channel()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = channel.Close() })
+	require.NoError(t, channel.PublishWithContext(
+		testContext(t),
+		exchange.Name,
+		"users.created",
+		false,
+		false,
+		rabbit.Publishing{Body: []byte("declared-by-consumer")},
+	))
+
+	assert.Equal(t, "declared-by-consumer", string(receive(t, received).Body))
 }
 
 func TestNackRedeliveryAndRejectToDLQ(t *testing.T) {
@@ -89,7 +131,7 @@ func TestNackRedeliveryAndRejectToDLQ(t *testing.T) {
 			redelivered <- delivery.Redelivered
 			return Reject
 		}
-	}, &queue, nil, &QoSConfig{PrefetchCount: 1})
+	}, nil, &queue, nil, &QoSConfig{PrefetchCount: 1})
 	require.NoError(t, connection.Start())
 	require.NoError(t, producer.Publish(testContext(t), Delivery{Body: []byte("retry-me")}))
 	assert.True(t, receive(t, redelivered), "a nacked and requeued message must be marked as redelivered")
@@ -114,7 +156,7 @@ func TestReconnectsChannelAndConnection(t *testing.T) {
 	connection.Consumer(context.Background(), func(_ context.Context, delivery Delivery) Disposition {
 		received <- delivery
 		return Ack
-	}, &queue, nil, nil)
+	}, nil, &queue, nil, nil)
 	require.NoError(t, connection.Start())
 
 	producer.mu.RLock()
@@ -148,7 +190,7 @@ func TestGracefulConsumerAndProducerClose(t *testing.T) {
 		<-releaseHandler
 		close(handlerFinished)
 		return Ack
-	}, &queue, nil, nil)
+	}, nil, &queue, nil, nil)
 	require.NoError(t, connection.Start())
 	require.NoError(t, producer.Publish(testContext(t), Delivery{Body: []byte("in-flight")}))
 	receive(t, handlerStarted)

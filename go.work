@@ -3,6 +3,7 @@ go 1.27.1
 use (
 	./internal/sharedpool
 	./pkg/amqp
+	./pkg/event
 	./pkg/logging
 	./pkg/migrator
 	./pkg/mysql

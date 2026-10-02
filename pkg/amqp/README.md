@@ -6,6 +6,7 @@
 Возможности:
 
 - публикация через exchange или напрямую в очередь через default exchange;
+- декларация exchange как producer-ом, так и consumer-ом;
 - publisher confirms: `Publish` завершается только после broker ack;
 - ручное подтверждение consumer-сообщений через `Ack`, `Nack` и `Reject`;
 - panic при возврате handler-ом неизвестного `Disposition`, поскольку это
@@ -37,7 +38,7 @@ conn.Consumer(ctx, func(ctx context.Context, message amqp.Delivery) amqp.Disposi
         return amqp.Nack // requeue; следующая доставка будет Redelivered
     }
     return amqp.Ack
-}, queue, nil, &amqp.QoSConfig{PrefetchCount: 10})
+}, nil, queue, nil, &amqp.QoSConfig{PrefetchCount: 10})
 
 if err := conn.Start(); err != nil { /* handle */ }
 defer conn.Stop()

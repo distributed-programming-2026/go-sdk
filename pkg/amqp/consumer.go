@@ -29,11 +29,27 @@ type Consumer interface {
 
 var consumerSequence atomic.Uint64
 
-func NewConsumer(ctx context.Context, handler Handler, queue *QueueConfig, bind *BindConfig, qos *QoSConfig, logger *slog.Logger) Consumer {
-	return newConsumer(ctx, handler, queue, bind, qos, logger)
+func NewConsumer(
+	ctx context.Context,
+	handler Handler,
+	exchange *ExchangeConfig,
+	queue *QueueConfig,
+	bind *BindConfig,
+	qos *QoSConfig,
+	logger *slog.Logger,
+) Consumer {
+	return newConsumer(ctx, handler, exchange, queue, bind, qos, logger)
 }
 
-func newConsumer(ctx context.Context, handler Handler, queue *QueueConfig, bind *BindConfig, qos *QoSConfig, logger *slog.Logger) *consumer {
+func newConsumer(
+	ctx context.Context,
+	handler Handler,
+	exchange *ExchangeConfig,
+	queue *QueueConfig,
+	bind *BindConfig,
+	qos *QoSConfig,
+	logger *slog.Logger,
+) *consumer {
 	if ctx == nil {
 		panic("amqp: context is required")
 	}
@@ -47,18 +63,25 @@ func newConsumer(ctx context.Context, handler Handler, queue *QueueConfig, bind 
 		panic("amqp: handler is required")
 	}
 	return &consumer{
-		ctx: ctx, handler: handler, queue: queue, bind: bind, qos: qos, logger: logger,
-		tag: fmt.Sprintf("go-sdk-%d", consumerSequence.Add(1)), closeDone: make(chan struct{}),
+		ctx:      ctx,
+		handler:  handler,
+		exchange: exchange,
+		queue:    queue,
+		bind:     bind,
+		qos:      qos,
+		logger:   logger,
+		tag:      fmt.Sprintf("go-sdk-%d", consumerSequence.Add(1)), closeDone: make(chan struct{}),
 	}
 }
 
 type consumer struct {
-	ctx     context.Context
-	handler Handler
-	queue   *QueueConfig
-	bind    *BindConfig
-	qos     *QoSConfig
-	logger  *slog.Logger
+	ctx      context.Context
+	handler  Handler
+	exchange *ExchangeConfig
+	queue    *QueueConfig
+	bind     *BindConfig
+	qos      *QoSConfig
+	logger   *slog.Logger
 
 	mu        sync.Mutex
 	channel   *rabbit.Channel
@@ -92,6 +115,11 @@ func (c *consumer) Connect(conn *rabbit.Connection) (err error) {
 			_ = channel.Close()
 		}
 	}()
+	if c.exchange != nil {
+		if err = declareExchange(channel, *c.exchange); err != nil {
+			return fmt.Errorf("declare exchange: %w", err)
+		}
+	}
 	if c.queue.DLQ != nil {
 		if err = declareDLQ(channel, *c.queue.DLQ); err != nil {
 			return err

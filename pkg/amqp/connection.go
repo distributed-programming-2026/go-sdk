@@ -19,7 +19,14 @@ type Connection interface {
 	Stop() error
 	AddChannel(Channel)
 	Producer(exchange *ExchangeConfig, queue *QueueConfig, bind *BindConfig) Producer
-	Consumer(ctx context.Context, handler Handler, queue *QueueConfig, bind *BindConfig, qos *QoSConfig) Consumer
+	Consumer(
+		ctx context.Context,
+		handler Handler,
+		exchange *ExchangeConfig,
+		queue *QueueConfig,
+		bind *BindConfig,
+		qos *QoSConfig,
+	) Consumer
 }
 
 type Channel interface {
@@ -137,8 +144,15 @@ func (c *connection) Producer(exchange *ExchangeConfig, queue *QueueConfig, bind
 	return p
 }
 
-func (c *connection) Consumer(ctx context.Context, handler Handler, queue *QueueConfig, bind *BindConfig, qos *QoSConfig) Consumer {
-	consumer := newConsumer(ctx, handler, queue, bind, qos, c.logger)
+func (c *connection) Consumer(
+	ctx context.Context,
+	handler Handler,
+	exchange *ExchangeConfig,
+	queue *QueueConfig,
+	bind *BindConfig,
+	qos *QoSConfig,
+) Consumer {
+	consumer := newConsumer(ctx, handler, exchange, queue, bind, qos, c.logger)
 	c.AddChannel(consumer)
 	return consumer
 }
