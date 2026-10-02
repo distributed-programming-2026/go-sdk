@@ -50,6 +50,8 @@ for module_file in "${module_files[@]}"; do
   tags+=("$tag")
 done
 
+mise run all
+
 sdk="github.com/distributed-programming-2026/go-sdk"
 for module_file in "${module_files[@]}"; do
   module_dir="$(dirname "$module_file")"
@@ -73,8 +75,6 @@ for module_file in "${module_files[@]}"; do
     '
   )
 done
-
-mise run all
 
 for module_file in "${module_files[@]}"; do
   git add "$module_file"
