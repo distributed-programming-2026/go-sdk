@@ -3,8 +3,8 @@ module github.com/distributed-programming-2026/go-sdk/pkg/uow
 go 1.27.1
 
 require (
-	github.com/distributed-programming-2026/go-sdk/internal/sharedpool v0.0.2
-	github.com/distributed-programming-2026/go-sdk/pkg/mysql v0.0.2
+	github.com/distributed-programming-2026/go-sdk/internal/sharedpool v0.0.3
+	github.com/distributed-programming-2026/go-sdk/pkg/mysql v0.0.3
 	github.com/testcontainers/testcontainers-go v0.44.0
 	github.com/testcontainers/testcontainers-go/modules/mysql v0.44.0
 )

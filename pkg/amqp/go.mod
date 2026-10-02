@@ -3,7 +3,7 @@ module github.com/distributed-programming-2026/go-sdk/pkg/amqp
 go 1.27.1
 
 require (
-	github.com/distributed-programming-2026/go-sdk/pkg/logging v0.0.2
+	github.com/distributed-programming-2026/go-sdk/pkg/logging v0.0.3
 	github.com/rabbitmq/amqp091-go v1.15.0
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0

@@ -3,7 +3,7 @@ module github.com/distributed-programming-2026/go-sdk/pkg/mysql
 go 1.27.1
 
 require (
-	github.com/distributed-programming-2026/go-sdk/internal/sharedpool v0.0.2
+	github.com/distributed-programming-2026/go-sdk/internal/sharedpool v0.0.3
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/stretchr/testify v1.12.1
