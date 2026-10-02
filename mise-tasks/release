@@ -55,7 +55,10 @@ for module_file in "${module_files[@]}"; do
   module_dir="$(dirname "$module_file")"
   while read -r dependency; do
     [[ "$dependency" == "$sdk"/* ]] || continue
-    go mod edit -modfile="$module_file" -require="${dependency}@v${version}"
+    (
+      cd "$module_dir"
+      GOWORK=off go mod edit -require="${dependency}@v${version}"
+    )
   done < <(
     cd "$module_dir"
     GOWORK=off go mod edit -json | awk '
