@@ -88,3 +88,25 @@ for tag in "${tags[@]}"; do
 done
 
 git push --atomic origin main "${tags[@]}"
+
+# Internal module checksums cannot be calculated until their new tags are
+# published. Refresh them directly from GitHub after publishing the release so
+# a subsequent `mise run all` leaves the repository clean.
+for module_file in "${module_files[@]}"; do
+  module_dir="$(dirname "$module_file")"
+  (
+    cd "$module_dir"
+    GONOSUMDB="${sdk}/*" GOPROXY=direct GOWORK=off go mod tidy
+  )
+done
+
+for module_file in "${module_files[@]}"; do
+  git add "$module_file"
+  module_sum="${module_file%.mod}.sum"
+  [[ -f "$module_sum" ]] && git add "$module_sum"
+done
+
+if ! git diff --cached --quiet; then
+  git commit -m "chore: refresh checksums for v${version}"
+  git push origin main
+fi
