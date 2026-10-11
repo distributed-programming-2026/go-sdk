@@ -35,7 +35,7 @@ type TransactionalClient interface {
 }
 
 func NewTransactionalClientFromSQLx(db *sqlx.DB) TransactionalClient {
-	return &transactionalClient{clientContext: clientContext{delegate: db}, db: db}
+	return &transactionalClient{delegate: db, db: db}
 }
 
 type sqlxClientContext interface {
@@ -49,25 +49,31 @@ type clientContext struct {
 }
 
 func (client clientContext) QueryContext(ctx context.Context, queryID, query string, args ...any) (*sql.Rows, error) {
-	rows, err := client.delegate.QueryContext(ctx, query, args...)
+	rows, err := client.delegate.QueryContext(ctx, query, normalizeQueryArgs(args)...)
 	return rows, wrapQueryError(queryID, err)
 }
 
 func (client clientContext) QueryRowContext(ctx context.Context, _, query string, args ...any) *sql.Row {
-	return client.delegate.QueryRowContext(ctx, query, args...)
+	return client.delegate.QueryRowContext(ctx, query, normalizeQueryArgs(args)...)
 }
 
 func (client clientContext) ExecContext(ctx context.Context, queryID, query string, args ...any) (sql.Result, error) {
-	result, err := client.delegate.ExecContext(ctx, query, args...)
+	result, err := client.delegate.ExecContext(ctx, query, normalizeQueryArgs(args)...)
 	return result, wrapQueryError(queryID, err)
 }
 
 func (client clientContext) SelectContext(ctx context.Context, queryID string, dest any, query string, args ...any) error {
-	return wrapQueryError(queryID, sqlx.SelectContext(ctx, client.delegate, dest, query, args...))
+	return wrapQueryError(
+		queryID,
+		sqlx.SelectContext(ctx, client.delegate, dest, query, normalizeQueryArgs(args)...),
+	)
 }
 
 func (client clientContext) GetContext(ctx context.Context, queryID string, dest any, query string, args ...any) error {
-	return wrapQueryError(queryID, sqlx.GetContext(ctx, client.delegate, dest, query, args...))
+	return wrapQueryError(
+		queryID,
+		sqlx.GetContext(ctx, client.delegate, dest, query, normalizeQueryArgs(args)...),
+	)
 }
 
 func wrapQueryError(queryID string, err error) error {
@@ -87,7 +93,7 @@ func (client *transactionalClient) BeginTransaction() (Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &transaction{clientContext: clientContext{delegate: tx}, tx: tx}, nil
+	return &transaction{delegate: tx, tx: tx}, nil
 }
 
 func (client *transactionalClient) Connection(ctx context.Context) (TransactionalConnection, error) {
@@ -95,7 +101,7 @@ func (client *transactionalClient) Connection(ctx context.Context) (Transactiona
 	if err != nil {
 		return nil, err
 	}
-	return &transactionalConnection{clientContext: clientContext{delegate: conn}, conn: conn}, nil
+	return &transactionalConnection{delegate: conn, conn: conn}, nil
 }
 
 type transaction struct {
@@ -111,12 +117,15 @@ type transactionalConnection struct {
 	conn *sqlx.Conn
 }
 
-func (conn *transactionalConnection) BeginTransaction(ctx context.Context, opts *sql.TxOptions) (Transaction, error) {
+func (conn *transactionalConnection) BeginTransaction(
+	ctx context.Context,
+	opts *sql.TxOptions,
+) (Transaction, error) {
 	tx, err := conn.conn.BeginTxx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
-	return &transaction{clientContext: clientContext{delegate: tx}, tx: tx}, nil
+	return &transaction{delegate: tx, tx: tx}, nil
 }
 
 func (conn *transactionalConnection) Close() error { return conn.conn.Close() }

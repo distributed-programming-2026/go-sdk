@@ -13,7 +13,16 @@ fi
 # For VM-backed Docker contexts (Lima, Colima, Docker Desktop), Ryuk must mount
 # the socket path as it exists inside the VM, not the macOS host path.
 case "${DOCKER_HOST:-}" in
-	unix://*/.lima/*|unix://*/.colima/*|unix://*/.docker/run/*)
+	unix://*/.lima/*|unix://*/.colima/*)
+		: "${TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE:=/var/run/docker.sock}"
+		export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE
+
+		# Ryuk may exit before becoming ready with VM-backed Docker daemons. The
+		# integration suites terminate their containers explicitly in TestMain.
+		: "${TESTCONTAINERS_RYUK_DISABLED:=true}"
+		export TESTCONTAINERS_RYUK_DISABLED
+		;;
+	unix://*/.docker/run/*)
 		: "${TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE:=/var/run/docker.sock}"
 		export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE
 		;;
