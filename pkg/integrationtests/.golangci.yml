@@ -1,0 +1,55 @@
+version: "2"
+run:
+  issues-exit-code: 1
+linters:
+  enable:
+    - asciicheck
+    - bodyclose
+    - dogsled
+    - dupl
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - importas
+    - misspell
+    - nakedret
+    - nestif
+    - prealloc
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - unconvert
+    - whitespace
+  settings:
+    gocritic:
+      disabled-checks:
+        - sloppyReassign
+        - whyNoLint
+      enabled-tags:
+        - experimental
+        - opinionated
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
