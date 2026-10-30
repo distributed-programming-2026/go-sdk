@@ -3,8 +3,8 @@ module github.com/distributed-programming-2026/go-sdk/pkg/mysql
 go 1.27.1
 
 require (
-	github.com/distributed-programming-2026/go-sdk/internal/sharedpool v0.0.5
-	github.com/distributed-programming-2026/go-sdk/pkg/integrationtests v0.0.0
+	github.com/distributed-programming-2026/go-sdk/internal/sharedpool v0.0.6
+	github.com/distributed-programming-2026/go-sdk/pkg/integrationtests v0.0.6
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/stretchr/testify v1.12.1
@@ -23,7 +23,7 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
-	github.com/distributed-programming-2026/go-sdk/pkg/logging v0.0.5 // indirect
+	github.com/distributed-programming-2026/go-sdk/pkg/logging v0.0.6 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.7.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect

@@ -5,7 +5,7 @@ go 1.27.1
 require (
 	github.com/containerd/errdefs v1.0.0
 	github.com/containerd/platforms v0.2.1
-	github.com/distributed-programming-2026/go-sdk/pkg/logging v0.0.5
+	github.com/distributed-programming-2026/go-sdk/pkg/logging v0.0.6
 	github.com/moby/moby/api v1.55.0
 	github.com/moby/moby/client v0.5.0
 	github.com/stretchr/testify v1.12.1
