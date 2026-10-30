@@ -4,6 +4,7 @@ go 1.27.1
 
 require (
 	github.com/distributed-programming-2026/go-sdk/pkg/amqp v0.0.5
+	github.com/distributed-programming-2026/go-sdk/pkg/integrationtests v0.0.0
 	github.com/distributed-programming-2026/go-sdk/pkg/logging v0.0.5
 	github.com/distributed-programming-2026/go-sdk/pkg/migrator v0.0.5
 	github.com/distributed-programming-2026/go-sdk/pkg/mysql v0.0.5
@@ -12,7 +13,6 @@ require (
 	github.com/rabbitmq/amqp091-go v1.15.0
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
-	github.com/testcontainers/testcontainers-go/modules/mysql v0.44.0
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -78,3 +78,5 @@ replace github.com/distributed-programming-2026/go-sdk/pkg/migrator => ../migrat
 replace github.com/distributed-programming-2026/go-sdk/pkg/mysql => ../mysql
 
 replace github.com/distributed-programming-2026/go-sdk/pkg/uow => ../uow
+
+replace github.com/distributed-programming-2026/go-sdk/pkg/integrationtests => ../integrationtests

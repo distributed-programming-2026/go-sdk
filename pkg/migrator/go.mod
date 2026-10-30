@@ -3,11 +3,11 @@ module github.com/distributed-programming-2026/go-sdk/pkg/migrator
 go 1.27.1
 
 require (
+	github.com/distributed-programming-2026/go-sdk/pkg/integrationtests v0.0.0
 	github.com/distributed-programming-2026/go-sdk/pkg/logging v0.0.5
 	github.com/distributed-programming-2026/go-sdk/pkg/mysql v0.0.5
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0
-	github.com/testcontainers/testcontainers-go/modules/mysql v0.44.0
 )
 
 require (
@@ -69,3 +69,5 @@ replace github.com/distributed-programming-2026/go-sdk/pkg/logging => ../logging
 replace github.com/distributed-programming-2026/go-sdk/pkg/mysql => ../mysql
 
 replace github.com/distributed-programming-2026/go-sdk/internal/sharedpool => ../../internal/sharedpool
+
+replace github.com/distributed-programming-2026/go-sdk/pkg/integrationtests => ../integrationtests

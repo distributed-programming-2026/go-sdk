@@ -19,7 +19,7 @@ func TestLockableUnitOfWorkIntegration(t *testing.T) {
 		return client
 	})
 	lockableWork := uow.NewLockableUnitOfWork(work)
-	ctx := context.WithValue(t.Context(), contextKey{}, "shared-transaction")
+	ctx := context.WithValue(testEnv.Bind(t), contextKey{}, "shared-transaction")
 
 	contenderConnection, err := client.Connection(ctx)
 	if err != nil {
@@ -68,7 +68,7 @@ func TestNestedLockableUnitsOfWorkKeepAllLocksUntilTransactionCloses(t *testing.
 		return client
 	})
 	lockableWork := uow.NewLockableUnitOfWork(work)
-	ctx := context.WithValue(t.Context(), contextKey{}, "nested-lockable-transaction")
+	ctx := context.WithValue(testEnv.Bind(t), contextKey{}, "nested-lockable-transaction")
 
 	contenderConnection, err := client.Connection(ctx)
 	if err != nil {
@@ -110,6 +110,7 @@ func TestNestedLockableUnitsOfWorkKeepAllLocksUntilTransactionCloses(t *testing.
 
 func newTestClient(t *testing.T) sdkmysql.TransactionalClient {
 	t.Helper()
+	testEnv.Bind(t)
 
 	connector := sdkmysql.NewConnector()
 	if err := connector.Open(testDSN, sdkmysql.Config{

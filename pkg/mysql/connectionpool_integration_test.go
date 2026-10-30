@@ -11,7 +11,7 @@ import (
 )
 
 func TestConnectionPoolIntegration(t *testing.T) {
-	ctx := context.WithValue(t.Context(), contextKey{}, "shared-connection")
+	ctx := context.WithValue(testEnv.Bind(t), contextKey{}, "shared-connection")
 	pool := sdkmysql.NewConnectionPool(newTestClient(t))
 
 	outer, err := pool.TransactionalConnection(ctx)

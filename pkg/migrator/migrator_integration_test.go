@@ -29,19 +29,19 @@ func TestMigratorIntegration(t *testing.T) {
 		testMigration{version: 1, description: "first", up: appendVersion(&applicationOrder, 1)},
 		testMigration{version: 2, description: "second", up: appendVersion(&applicationOrder, 2)},
 	}
-	require.NoError(t, migrator.Migrate(t.Context(), "application", applicationMigrations...))
+	require.NoError(t, migrator.Migrate(testEnv.Bind(t), "application", applicationMigrations...))
 	assert.Equal(t, []int64{1, 2, 3}, applicationOrder)
 
 	// The same versions are independent in another target.
 	var mysqlOrder []int64
-	require.NoError(t, migrator.Migrate(t.Context(), "mysql",
+	require.NoError(t, migrator.Migrate(testEnv.Bind(t), "mysql",
 		testMigration{version: 1, description: "mysql first", up: appendVersion(&mysqlOrder, 1)},
 		testMigration{version: 2, description: "mysql second", up: appendVersion(&mysqlOrder, 2)},
 	))
 	assert.Equal(t, []int64{1, 2}, mysqlOrder)
 
 	// Re-running a target does not call Up again.
-	require.NoError(t, migrator.Migrate(t.Context(), "application", applicationMigrations...))
+	require.NoError(t, migrator.Migrate(testEnv.Bind(t), "application", applicationMigrations...))
 	assert.Equal(t, []int64{1, 2, 3}, applicationOrder)
 
 	assertHistory(t, client, tableName, "application", []historyRow{
@@ -57,9 +57,9 @@ func TestMigratorIntegrationRejectsLateMigration(t *testing.T) {
 	tableName := fmt.Sprintf("migrations_%d", tableSequence.Add(1))
 	migrator, err := New(client, slog.Default(), WithTableName(tableName))
 	require.NoError(t, err)
-	require.NoError(t, migrator.Migrate(t.Context(), "application", testMigration{version: 2}))
+	require.NoError(t, migrator.Migrate(testEnv.Bind(t), "application", testMigration{version: 2}))
 
-	err = migrator.Migrate(t.Context(), "application", testMigration{version: 1})
+	err = migrator.Migrate(testEnv.Bind(t), "application", testMigration{version: 1})
 
 	assert.ErrorIs(t, err, ErrOutOfOrder)
 	assertHistory(t, client, tableName, "application", []historyRow{{2, ""}})
@@ -76,7 +76,7 @@ func TestMigratorIntegrationReleasesLockAfterPanic(t *testing.T) {
 	var recovered any
 	func() {
 		defer func() { recovered = recover() }()
-		_ = migrator.Migrate(t.Context(), "application", testMigration{version: 1, up: func(context.Context) error {
+		_ = migrator.Migrate(testEnv.Bind(t), "application", testMigration{version: 1, up: func(context.Context) error {
 			panic(panicValue)
 		}})
 	}()
@@ -84,7 +84,7 @@ func TestMigratorIntegrationReleasesLockAfterPanic(t *testing.T) {
 
 	// A second run can acquire the same advisory lock immediately.
 	applied := false
-	require.NoError(t, migrator.Migrate(t.Context(), "application", testMigration{version: 1, up: func(context.Context) error {
+	require.NoError(t, migrator.Migrate(testEnv.Bind(t), "application", testMigration{version: 1, up: func(context.Context) error {
 		applied = true
 		return nil
 	}}))
@@ -107,17 +107,18 @@ func assertHistory(t *testing.T, client sdkmysql.ClientContext, tableName, targe
 	t.Helper()
 	var actual []historyRow
 	query := "SELECT version, description FROM `" + tableName + "` WHERE target = ? ORDER BY version"
-	require.NoError(t, client.SelectContext(t.Context(), "test.migration-history", &actual, query, target))
+	require.NoError(t, client.SelectContext(testEnv.Bind(t), "test.migration-history", &actual, query, target))
 	assert.Equal(t, expected, actual)
 
 	var missingTimestamps int
 	query = "SELECT COUNT(*) FROM `" + tableName + "` WHERE target = ? AND applied_at IS NULL"
-	require.NoError(t, client.GetContext(t.Context(), "test.migration-timestamps", &missingTimestamps, query, target))
+	require.NoError(t, client.GetContext(testEnv.Bind(t), "test.migration-timestamps", &missingTimestamps, query, target))
 	assert.Zero(t, missingTimestamps)
 }
 
 func newIntegrationClient(t *testing.T) sdkmysql.TransactionalClient {
 	t.Helper()
+	testEnv.Bind(t)
 	connector := sdkmysql.NewConnector()
 	require.NoError(t, connector.Open(testDSN, sdkmysql.Config{
 		MaxConnections: 8, ConnectionMaxLifeTime: time.Minute, ConnectionMaxIdleTime: time.Minute,

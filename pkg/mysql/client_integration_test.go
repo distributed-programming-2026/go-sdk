@@ -13,7 +13,7 @@ import (
 )
 
 func TestClientIntegration(t *testing.T) {
-	ctx := t.Context()
+	ctx := testEnv.Bind(t)
 	client := newTestClient(t)
 	require.NoError(t, createTestTable(ctx, client))
 	require.NoError(t, createUUIDTestTable(ctx, client))

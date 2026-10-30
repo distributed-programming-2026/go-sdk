@@ -15,6 +15,7 @@ type contextKey struct{}
 
 func newTestClient(t *testing.T) sdkmysql.TransactionalClient {
 	t.Helper()
+	testEnv.Bind(t)
 
 	connector := sdkmysql.NewConnector()
 	require.NoError(t, connector.Open(testDSN, sdkmysql.Config{

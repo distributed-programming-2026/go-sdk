@@ -41,7 +41,7 @@ func TestDirectQueueAndPublisherConfirm(t *testing.T) {
 	received := make(chan Delivery, 1)
 	connection := testConnection(t)
 	producer := connection.Producer(nil, &queue, nil)
-	connection.Consumer(context.Background(), func(_ context.Context, delivery Delivery) Disposition {
+	connection.Consumer(testEnv.Bind(t), func(_ context.Context, delivery Delivery) Disposition {
 		received <- delivery
 		return Ack
 	}, nil, &queue, nil, &QoSConfig{PrefetchCount: 1})
@@ -61,7 +61,7 @@ func TestDirectExchange(t *testing.T) {
 	received := make(chan Delivery, 1)
 	connection := testConnection(t)
 	producer := connection.Producer(&exchange, &queue, &bind)
-	connection.Consumer(context.Background(), func(_ context.Context, delivery Delivery) Disposition {
+	connection.Consumer(testEnv.Bind(t), func(_ context.Context, delivery Delivery) Disposition {
 		received <- delivery
 		return Ack
 	}, &exchange, &queue, &bind, nil)
@@ -88,7 +88,7 @@ func TestConsumerDeclaresExchange(t *testing.T) {
 	}
 	received := make(chan Delivery, 1)
 	connection := testConnection(t)
-	connection.Consumer(context.Background(), func(_ context.Context, delivery Delivery) Disposition {
+	connection.Consumer(testEnv.Bind(t), func(_ context.Context, delivery Delivery) Disposition {
 		received <- delivery
 		return Ack
 	}, &exchange, &queue, &bind, nil)
@@ -123,7 +123,7 @@ func TestNackRedeliveryAndRejectToDLQ(t *testing.T) {
 	var attempts atomic.Int32
 	connection := testConnection(t)
 	producer := connection.Producer(nil, &queue, nil)
-	connection.Consumer(context.Background(), func(_ context.Context, delivery Delivery) Disposition {
+	connection.Consumer(testEnv.Bind(t), func(_ context.Context, delivery Delivery) Disposition {
 		switch attempts.Add(1) {
 		case 1:
 			return Nack
@@ -153,7 +153,7 @@ func TestReconnectsChannelAndConnection(t *testing.T) {
 	received := make(chan Delivery, 2)
 	connection := testConnection(t).(*connection)
 	producer := connection.Producer(nil, &queue, nil).(*producer)
-	connection.Consumer(context.Background(), func(_ context.Context, delivery Delivery) Disposition {
+	connection.Consumer(testEnv.Bind(t), func(_ context.Context, delivery Delivery) Disposition {
 		received <- delivery
 		return Ack
 	}, nil, &queue, nil, nil)
@@ -168,7 +168,7 @@ func TestReconnectsChannelAndConnection(t *testing.T) {
 	}, 10*time.Second, 100*time.Millisecond)
 	assert.Equal(t, "after-channel", string(receive(t, received).Body))
 
-	exitCode, output, err := testRabbit.Exec(context.Background(), []string{"rabbitmqctl", "close_all_connections", "integration test"})
+	exitCode, output, err := testRabbit.Exec(testEnv.Bind(t), []string{"rabbitmqctl", "close_all_connections", "integration test"})
 	require.NoError(t, err)
 	data, _ := io.ReadAll(output)
 	require.Equalf(t, 0, exitCode, "rabbitmqctl output: %s", data)
@@ -185,7 +185,7 @@ func TestGracefulConsumerAndProducerClose(t *testing.T) {
 	handlerFinished := make(chan struct{})
 	connection := testConnection(t)
 	producer := connection.Producer(nil, &queue, nil)
-	consumer := connection.Consumer(context.Background(), func(context.Context, Delivery) Disposition {
+	consumer := connection.Consumer(testEnv.Bind(t), func(context.Context, Delivery) Disposition {
 		close(handlerStarted)
 		<-releaseHandler
 		close(handlerFinished)
@@ -195,7 +195,7 @@ func TestGracefulConsumerAndProducerClose(t *testing.T) {
 	require.NoError(t, producer.Publish(testContext(t), Delivery{Body: []byte("in-flight")}))
 	receive(t, handlerStarted)
 
-	shortCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	shortCtx, cancel := context.WithTimeout(testEnv.Bind(t), 100*time.Millisecond)
 	defer cancel()
 	assert.ErrorIs(t, consumer.Close(shortCtx), context.DeadlineExceeded)
 	select {
@@ -213,6 +213,7 @@ func TestGracefulConsumerAndProducerClose(t *testing.T) {
 
 func testConnection(t *testing.T) Connection {
 	t.Helper()
+	testEnv.Bind(t)
 	connection := NewConnection("amqp-integration-test", ConnectionConfig{
 		URL: testAMQPURL, ConnectTimeout: 5 * time.Second, ReconnectBackoff: 50 * time.Millisecond,
 	}, slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -222,16 +223,21 @@ func testConnection(t *testing.T) Connection {
 
 func testContext(t *testing.T) context.Context {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(testEnv.Bind(t), 2*time.Second)
 	t.Cleanup(cancel)
 	return ctx
 }
 
 func receive[T any](t *testing.T, channel <-chan T) T {
 	t.Helper()
+	ctx := testEnv.Bind(t)
 	select {
 	case value := <-channel:
 		return value
+	case <-ctx.Done():
+		t.Fatalf("waiting for AMQP message: %v", context.Cause(ctx))
+		var zero T
+		return zero
 	case <-time.After(10 * time.Second):
 		t.Fatal("timed out waiting for AMQP message")
 		var zero T

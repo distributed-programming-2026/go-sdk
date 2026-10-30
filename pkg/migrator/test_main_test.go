@@ -2,43 +2,38 @@ package migrator
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 
+	"github.com/distributed-programming-2026/go-sdk/pkg/integrationtests"
 	"github.com/testcontainers/testcontainers-go"
-	tcmysql "github.com/testcontainers/testcontainers-go/modules/mysql"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 const mysqlImage = "mysql:8.4"
 
 var testDSN string
 
-func TestMain(m *testing.M) {
-	ctx := context.Background()
-	container, err := tcmysql.Run(ctx, mysqlImage,
-		tcmysql.WithDatabase("migrator_test"),
-		tcmysql.WithUsername("migrator"),
-		tcmysql.WithPassword("migrator_password"),
-	)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "start MySQL test container: %v\n", err)
-		os.Exit(1)
-	}
-
-	testDSN, err = container.ConnectionString(ctx, "parseTime=true")
-	if err != nil {
-		_ = testcontainers.TerminateContainer(container)
-		fmt.Fprintf(os.Stderr, "get MySQL test container connection string: %v\n", err)
-		os.Exit(1)
-	}
-
-	exitCode := m.Run()
-	if err := testcontainers.TerminateContainer(container); err != nil {
-		fmt.Fprintf(os.Stderr, "terminate MySQL test container: %v\n", err)
-		if exitCode == 0 {
-			exitCode = 1
+var testEnv = integrationtests.New(integrationtests.Config{
+	Containers: []integrationtests.ContainerSpec{{
+		Name: "mysql",
+		Request: testcontainers.ContainerRequest{
+			Image:        mysqlImage,
+			ExposedPorts: []string{"3306/tcp"},
+			Env: map[string]string{ // #nosec G101 -- ephemeral integration-test credentials.
+				"MYSQL_DATABASE": "migrator_test", "MYSQL_USER": "migrator", "MYSQL_PASSWORD": "migrator_password", "MYSQL_ROOT_PASSWORD": "migrator_root",
+			},
+			WaitingFor: wait.ForLog("port: 3306  MySQL Community Server"),
+		},
+	}},
+	Setup: func(ctx context.Context, env *integrationtests.Environment) error {
+		endpoint, err := env.HostEndpoint(ctx, "mysql", "3306/tcp")
+		if err != nil {
+			return err
 		}
-	}
-	os.Exit(exitCode)
-}
+		testDSN = "migrator:migrator_password@tcp(" + endpoint + ")/migrator_test?parseTime=true"
+		return nil
+	},
+})
+
+func TestMain(m *testing.M) { os.Exit(integrationtests.Run(m, testEnv)) }

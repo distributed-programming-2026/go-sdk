@@ -23,7 +23,7 @@ import (
 )
 
 func TestOutboxAMQPInboxFlow(t *testing.T) {
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(testEnv.Bind(t), 30*time.Second)
 	defer cancel()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	client := integrationClient(t)
@@ -145,7 +145,7 @@ func sideEffectCount(t *testing.T, client sdkmysql.ClientContext, eventID string
 	t.Helper()
 	var count int
 	require.NoError(t, client.GetContext(
-		t.Context(),
+		testEnv.Bind(t),
 		"test.side-effects.count",
 		&count,
 		"SELECT COUNT(*) FROM event_side_effect WHERE event_id = ?",

@@ -13,7 +13,7 @@ import (
 )
 
 func TestLockIntegration(t *testing.T) {
-	ctx := t.Context()
+	ctx := testEnv.Bind(t)
 	client := newTestClient(t)
 	firstConnection, err := client.Connection(ctx)
 	require.NoError(t, err)
@@ -35,7 +35,7 @@ func TestLockIntegration(t *testing.T) {
 }
 
 func TestLockerIntegration(t *testing.T) {
-	ctx := t.Context()
+	ctx := testEnv.Bind(t)
 	client := newTestClient(t)
 
 	t.Run("executes callback and releases lock", func(t *testing.T) {
